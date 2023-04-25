@@ -35,6 +35,7 @@ class _FoldersBodyState extends State<FoldersBody> {
   final _formKey = GlobalKey<FormState>();
   bool error = false;
   final List<String> errors = [];
+  bool busy = false;
 
   @override
   void initState() {
@@ -197,11 +198,22 @@ class _FoldersBodyState extends State<FoldersBody> {
                               ),
                             ),
                           ),
-                          TextButton(
-                              onPressed: () async {
-                                await client.mkdir('$folderName');
-                              },
-                              child: const Text('Create'))
+                          busy
+                              ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                              : TextButton(
+                                  onPressed: () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      _formKey.currentState!.save();
+                                      setState(() {
+                                        busy = true;
+                                      });
+                                      await client.mkdir('$folderName').then(
+                                          (value) => Navigator.pop(context));
+                                    }
+                                  },
+                                  child: const Text('Create'))
                         ],
                       ),
                     ),
