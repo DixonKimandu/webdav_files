@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:webview_flutter/webview_flutter.dart';
-
+import 'package:path/path.dart';
 import '../../../Settings/Settings.dart';
 
 class FilesBody extends StatefulWidget {
@@ -223,7 +223,7 @@ class _FilesBodyState extends State<FilesBody> {
               // CancelToken c = CancelToken();
               await client.writeFromFile(
                 '${file.path}',
-                '${file.path}',
+                '${widget.folder}/${basename(path)}',
                 onProgress: (c, t) {
                   print(c / t);
                 }, /*cancelToken: c*/
