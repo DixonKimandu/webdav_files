@@ -58,8 +58,14 @@ class _FilesBodyState extends State<FilesBody> {
       );
 
       controller = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..loadRequest(
-          Uri.parse(userUrl),
+          Uri.parse('$userUrl/$dirPath'),
+          method: LoadRequestMethod.get,
+          headers: <String, String>{
+            'authorization':
+                'Basic ${base64.encode(utf8.encode('$user:$password'))}'
+          },
         );
     });
   }
@@ -154,7 +160,13 @@ class _FilesBodyState extends State<FilesBody> {
       appBar: AppBar(
         actions: [
           docOpened
-              ? IconButton(onPressed: () {}, icon: const Icon(Icons.close))
+              ? IconButton(
+                  onPressed: () {
+                    setState(() {
+                      docOpened = false;
+                    });
+                  },
+                  icon: const Icon(Icons.close))
               : const SizedBox(),
           longPressed
               ? Row(
