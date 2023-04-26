@@ -30,13 +30,14 @@ class _FilesBodyState extends State<FilesBody> {
   // TODO need change your test url && user && pwd
   // if you use browser and received 'XMLHttpRequest error'  you need check cors!!!
   // https://stackoverflow.com/questions/65630743/how-to-solve-flutter-web-api-cors-error-only-with-dart-code
-  // final url = 'https://bungevirtual.com/remote.php/dav/files/Dixon/';
+  final serverFilesUrl = '/apps/files/?dir=/';
   var url = '';
   var user = '';
   var password = '';
   var dirPath = '/';
   var longPressed = false;
   late final WebViewController controller;
+  var loadingPercentage = 0;
   bool docOpened = false;
   var userUrl = '';
 
@@ -57,16 +58,16 @@ class _FilesBodyState extends State<FilesBody> {
         debug: true,
       );
 
-      controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..loadRequest(
-          Uri.parse('$userUrl/$dirPath'),
-          method: LoadRequestMethod.get,
-          headers: <String, String>{
-            'authorization':
-                'Basic ${base64.encode(utf8.encode('$user:$password'))}'
-          },
-        );
+      // controller = WebViewController()
+      //   ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      //   ..loadRequest(
+      //     Uri.parse('$userUrl/$dirPath'),
+      //     method: LoadRequestMethod.get,
+      //     headers: <String, String>{
+      //       'authorization':
+      //           'Basic ${base64.encode(utf8.encode('$user:$password'))}'
+      //     },
+      //   );
     });
   }
 
@@ -87,69 +88,113 @@ class _FilesBodyState extends State<FilesBody> {
     //   });
   }
 
+  downloadDoc(String file) {
+    final doc = file;
+    print('Doc $doc');
+    controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (url) {
+          setState(() {
+            loadingPercentage = 0;
+          });
+        },
+        onProgress: (progress) {
+          setState(() {
+            loadingPercentage = progress;
+          });
+        },
+        onPageFinished: (url) {
+          setState(() {
+            loadingPercentage = 100;
+          });
+        },
+      ))
+      ..loadRequest(
+        // Uri.parse('$userUrl/$dirPath/$doc'),
+        // Uri.parse('https://flutter.dev')
+        Uri.parse('https://$url/$serverFilesUrl/$dirPath/'),
+        method: LoadRequestMethod.get,
+        headers: <String, String>{
+          'authorization':
+              'Basic ${base64.encode(utf8.encode('$user:$password'))}'
+        },
+      );
+  }
+
   Widget _buildListView(BuildContext context, List<webdav.File> list) {
     return ListView.builder(
         itemCount: list.length,
         itemBuilder: (context, index) {
           final file = list[index];
-          return GestureDetector(
-            onLongPress: () => {longPressed = true},
-            child: ListTile(
-              leading: Icon(file.isDir == true
-                  ? Icons.folder
-                  : Icons.file_present_rounded),
-              title: Text(file.name ?? ''),
-              subtitle: Text(file.mTime.toString()),
-              // subtitle: Text(widget.folder),
-              onTap: () async {
-                if (file.isDir == true) {
-                  final subFolderPath = '$dirPath/${file.name}';
-                  Navigator.pushNamed(context, SubFolder.route,
-                      arguments: {'folder': subFolderPath});
-                  print('${subFolderPath}');
-                } else {
-                  setState(() {
-                    docOpened = true;
-                  });
-                }
+          return ListTile(
+            leading: Icon(
+                file.isDir == true ? Icons.folder : Icons.file_present_rounded),
+            title: Text(file.name ?? ''),
+            subtitle: Text(file.mTime.toString()),
+            onLongPress: () {
+              showMenu(
+                  context: context,
+                  position: const RelativeRect.fromLTRB(0, 1000, 0, 0),
+                  items: [
+                    PopupMenuItem(
+                        onTap: () async {
+                          await client.remove('/$dirPath/${file.name}/');
+                        },
+                        value: 'delete',
+                        child: const Text('Delete'))
+                  ]);
+            },
+            onTap: () async {
+              if (file.isDir == true) {
+                final subFolderPath = '$dirPath/${file.name}';
+                Navigator.pushNamed(context, SubFolder.route,
+                    arguments: {'folder': subFolderPath});
+                print('${subFolderPath}');
+              } else {
+                final doc = file.eTag;
+                downloadDoc(doc!);
+                setState(() {
+                  docOpened = true;
+                });
+              }
 
-                // Navigator.pushNamed(context, Files.route);
-                // client.read('$dirPath/${file.name}', onProgress: (c, t) {
-                //   print(c / t);
-                // });
-                // final bytes = await client.read('$dirPath/${file.name}',
-                //     onProgress: (c, t) {
-                //   print(c / t);
-                // });
+              // Navigator.pushNamed(context, Files.route);
+              // client.read('$dirPath/${file.name}', onProgress: (c, t) {
+              //   print(c / t);
+              // });
+              // final bytes = await client.read('$dirPath/${file.name}',
+              //     onProgress: (c, t) {
+              //   print(c / t);
+              // });
 
-                // String filePath;
+              // String filePath;
 
-                // if (!kIsWeb && Platform.isAndroid) {
-                //   final externalDir = await getExternalStorageDirectory();
-                //   final downloadDir =
-                //       Directory('${externalDir!.path}/Download');
-                //   if (!downloadDir.existsSync()) {
-                //     downloadDir.createSync();
-                //   }
-                //   filePath = '${externalDir.path}/Downloads/${file.name}';
-                // } else {
-                //   final appDocDir = await getApplicationDocumentsDirectory();
-                //   filePath = '${appDocDir.path}/${file.name}';
-                // }
+              // if (!kIsWeb && Platform.isAndroid) {
+              //   final externalDir = await getExternalStorageDirectory();
+              //   final downloadDir =
+              //       Directory('${externalDir!.path}/Download');
+              //   if (!downloadDir.existsSync()) {
+              //     downloadDir.createSync();
+              //   }
+              //   filePath = '${externalDir.path}/Downloads/${file.name}';
+              // } else {
+              //   final appDocDir = await getApplicationDocumentsDirectory();
+              //   filePath = '${appDocDir.path}/${file.name}';
+              // }
 
-                // final appDocDir = await getApplicationDocumentsDirectory();
-                // filePath = '${appDocDir.path}/${file.name}';
+              // final appDocDir = await getApplicationDocumentsDirectory();
+              // filePath = '${appDocDir.path}/${file.name}';
 
-                // final fileObj = File(filePath);
-                // await fileObj.writeAsBytes(bytes);
-                // ScaffoldMessenger.of(context).showSnackBar(
-                //   SnackBar(
-                //     content: Text('File downloaded to $filePath'),
-                //     duration: Duration(seconds: 5),
-                //   ),
-                // );
-              },
-            ),
+              // final fileObj = File(filePath);
+              // await fileObj.writeAsBytes(bytes);
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   SnackBar(
+              //     content: Text('File downloaded to $filePath'),
+              //     duration: Duration(seconds: 5),
+              //   ),
+              // );
+            },
           );
         });
   }
@@ -189,9 +234,28 @@ class _FilesBodyState extends State<FilesBody> {
         title: const Text('Files'),
       ),
       body: docOpened
-          ? WebViewWidget(
-              controller: controller,
-            )
+          ? Stack(children: [
+              WebViewWidget(
+                controller: controller,
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: 1000,
+                  height: 100,
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 100.0, top: 40),
+                    child: Text(dirPath),
+                  ),
+                ),
+              ),
+              if (loadingPercentage < 100)
+                LinearProgressIndicator(
+                  value: loadingPercentage / 100.0,
+                ),
+            ])
           : FutureBuilder(
               future: _getData(),
               builder: (BuildContext context,
