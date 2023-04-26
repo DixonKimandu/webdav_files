@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:files_webdav/Settings/Settings.dart';
 import 'package:files_webdav/models/user.dart';
 import 'package:files_webdav/screens/Files/Files.dart';
+import 'package:files_webdav/screens/SubFolder/SubFolder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -106,6 +107,22 @@ class _FoldersBodyState extends State<FoldersBody> {
                 file.isDir == true ? Icons.folder : Icons.file_present_rounded),
             title: Text(file.name ?? ''),
             subtitle: Text(file.mTime.toString()),
+            onLongPress: () {
+              showMenu(
+                  context: context,
+                  position: const RelativeRect.fromLTRB(0, 1000, 0, 0),
+                  items: [
+                    PopupMenuItem(
+                        onTap: () async {
+                          await client.remove('/$dirPath/${file.name}/').then(
+                              (value) => Navigator.pushNamed(
+                                  context, SubFolder.route,
+                                  arguments: {'folder': dirPath}));
+                        },
+                        value: 'delete',
+                        child: const Text('Delete'))
+                  ]);
+            },
             onTap: () {
               Navigator.pushNamed(context, Files.route,
                   arguments: {'folder': file.name});
@@ -170,51 +187,54 @@ class _FoldersBodyState extends State<FoldersBody> {
                     title: const Text('Create Folder'),
                     content: Form(
                       key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: folderNameController,
-                            onSaved: (newValue) => folderName = newValue,
-                            onChanged: (value) {
-                              if (value.isNotEmpty) {
-                                removeError(error: kNullError);
-                              }
-                              return;
-                            },
-                            validator: (value) {
-                              if (value!.isEmpty) {
-                                addError(error: kNullError);
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * .2,
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: folderNameController,
+                              onSaved: (newValue) => folderName = newValue,
+                              onChanged: (value) {
+                                if (value.isNotEmpty) {
+                                  removeError(error: kNullError);
+                                }
+                                return;
+                              },
+                              validator: (value) {
+                                if (value!.isEmpty) {
+                                  addError(error: kNullError);
 
-                                return "";
-                              }
-                              return null;
-                            },
-                            decoration: const InputDecoration(
-                              hintText: 'Folder Name',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(30),
+                                  return "";
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                hintText: 'Folder Name',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(30),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          busy
-                              ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
-                              : TextButton(
-                                  onPressed: () async {
-                                    if (_formKey.currentState!.validate()) {
-                                      _formKey.currentState!.save();
-                                      setState(() {
-                                        busy = true;
-                                      });
-                                      await client.mkdir('$folderName').then(
-                                          (value) => Navigator.pop(context));
-                                    }
-                                  },
-                                  child: const Text('Create'))
-                        ],
+                            busy
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : TextButton(
+                                    onPressed: () async {
+                                      if (_formKey.currentState!.validate()) {
+                                        _formKey.currentState!.save();
+                                        setState(() {
+                                          busy = true;
+                                        });
+                                        await client.mkdir('$folderName').then(
+                                            (value) => Navigator.pop(context));
+                                      }
+                                    },
+                                    child: const Text('Create'))
+                          ],
+                        ),
                       ),
                     ),
                   ));
