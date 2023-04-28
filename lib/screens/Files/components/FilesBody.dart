@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:files_webdav/models/user.dart';
+import 'package:files_webdav/screens/Files/Files.dart';
 import 'package:files_webdav/screens/SubFolder/Subfolder.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class _FilesBodyState extends State<FilesBody> {
   // TODO need change your test url && user && pwd
   // if you use browser and received 'XMLHttpRequest error'  you need check cors!!!
   // https://stackoverflow.com/questions/65630743/how-to-solve-flutter-web-api-cors-error-only-with-dart-code
-  final serverFilesUrl = '/apps/files/?dir=/';
+  final serverFilesUrl = 'apps/files/?dir=';
   var url = '';
   var user = '';
   var password = '';
@@ -113,7 +114,7 @@ class _FilesBodyState extends State<FilesBody> {
       ..loadRequest(
         // Uri.parse('$userUrl/$dirPath/$doc'),
         // Uri.parse('https://flutter.dev')
-        Uri.parse('https://$url/$serverFilesUrl/$dirPath/'),
+        Uri.parse('https://$url/$serverFilesUrl$dirPath'),
         method: LoadRequestMethod.get,
         headers: <String, String>{
           'authorization':
@@ -210,6 +211,8 @@ class _FilesBodyState extends State<FilesBody> {
                     setState(() {
                       docOpened = false;
                     });
+                    Navigator.pushNamed(context, Files.route,
+                        arguments: {'folder': dirPath});
                   },
                   icon: const Icon(Icons.close))
               : const SizedBox(),
@@ -291,7 +294,8 @@ class _FilesBodyState extends State<FilesBody> {
                 onProgress: (c, t) {
                   print(c / t);
                 }, /*cancelToken: c*/
-              );
+              ).then((value) => Navigator.pushNamed(context, Files.route,
+                  arguments: {'folder': dirPath}));
             }
           },
           child: const Icon(Icons.add)),
